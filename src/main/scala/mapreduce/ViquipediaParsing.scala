@@ -33,6 +33,7 @@ object ViquipediaParse {
     for (r <- refs) println(r)
     println(refs.length)
     println(filteredRefs.length)
+    xmlleg.close()
     ResultViquipediaParsing(titol, contingut, filteredRefs)
   }
 }
