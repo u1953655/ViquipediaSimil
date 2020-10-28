@@ -3,6 +3,7 @@ package main
 import java.io.File
 
 import akka.actor.{ActorSystem, Props}
+import akka.pattern.ask
 import mapreduce._
 
 object tractaxml extends App {
@@ -82,7 +83,10 @@ object exampleMapreduce extends App {
   //val wordcount = systema.actorOf(Props(new MapReduce[File,String,String,Int,Int](fitxers,mappingWC,reducingWC )), name = "mastercount")
   val wordcount = systema.actorOf(Props(new MapReduce(fitxers,mappingWC,reducingWC )), name = "mastercount")
 
-
+  // afegir el missatge de compute com a start
+  // https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/
+ //   var resutltwordcount = wordcount ? compute
+  // com tancar el sistema d'actors.
   /*
 
   EXERCICIS:

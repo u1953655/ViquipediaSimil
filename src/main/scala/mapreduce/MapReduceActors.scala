@@ -4,6 +4,9 @@ import akka.actor.{Actor, ActorRef, Props}
 
 // Les case class hauran de polimòrfiques en les "claus" i "valors" que s'utilitzen
 // ja que  el MapReduce també serà polimòrfic, sinó, perdríem la genericitat.
+
+//case class compute() //to start computation and get its sender
+
 case class toMapper[K1,V1](fitxer: K1, text: List[V1])
 case class fromMapper[K2,V2](intermig: List[(K2,V2)])
 case class toReducer[K2,V2](word:K2, fitxers:List[V2])
