@@ -4,9 +4,10 @@ import java.io.File
 
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
-import mapreduce._
 import akka.util.Timeout
-import scala.concurrent.{Await, ExecutionContext, Future}
+import mapreduce._
+
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -50,20 +51,17 @@ object exampleMapreduce extends App {
 
 
 
-
-  def mappingInvInd(tupla:(File, List[String])) :List[(String, File)] =
-    tupla match {
-      case (file, words) =>
+  // funcions per si volem fer l'index invers
+  def mappingInvInd(file:File, words:List[String]) :List[(String, File)] =
         for (word <- words) yield (word, file)
-    }
 
-  def reducingInvInd(tupla:(String,List[File])):(String,Set[File]) =
-    tupla match {
-      case (word, files) => (word, files.toSet)
-    }
+
+  def reducingInvInd(word:String,lfiles:List[File]):(String,Set[File]) =
+        (word, lfiles.toSet)
+
 
   val systema: ActorSystem = ActorSystem("sistema")
-  println("Llencem l'index invertit")
+
   // Al crear l'actor MapReduce no cal passar els tipus com a paràmetres ja que amb els propis paràmetres dels constructor SCALA ja pot inferir els tipus.
   //  val indexinvertit = systema.actorOf(Props(new MapReduce[File,String,String,File,Set[File]](fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
 
@@ -71,34 +69,37 @@ object exampleMapreduce extends App {
 
 
 
-
-  def mappingWC(tupla:(File, List[String])) :List[(String, Int)] =
-    tupla match {
-      case (_, words) =>
+  // funcions per poder fer un word count
+  def mappingWC(file:File, words:List[String]) :List[(String, Int)] =
         for (word <- words) yield (word, 1) // Canvi file per 1
-    }
-
-  def reducingWC(tupla:(String,List[Int])):(String,Int) =
-    tupla match {
-      case (word, nums) => (word, nums.sum)
-    }
 
 
-  println("Llencem el wordCount")
+  def reducingWC(word:String, nums:List[Int]):(String,Int) =
+        (word, nums.sum)
+
+
+  println("Creem l'actor MapReduce per fer el wordCount")
   //val wordcount = systema.actorOf(Props(new MapReduce[File,String,String,Int,Int](fitxers,mappingWC,reducingWC )), name = "mastercount")
   val wordcount = systema.actorOf(Props(new MapReduce(fitxers,mappingWC,reducingWC )), name = "mastercount")
 
-  // afegir el missatge de compute com a start
-  // https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/
+  // Els Futures necessiten que se'ls passi un temps d'espera, un pel future i un per esperar la resposta.
+  // La idea és esperar un temps limitat per tal que el codi no es quedés penjat ja que si us fixeu preguntar
+  // i esperar denota sincronització. En el nostre cas, al saber que el codi no pot avançar fins que tinguem
+  // el resultat del MapReduce, posem un temps llarg (100000s) al preguntar i una Duration.Inf a l'esperar la resposta.
 
+  // Enviem un missatge com a pregunta (? enlloc de !) per tal que inicii l'execució del MapReduce del wordcount.
+  //var futureresutltwordcount = wordcount.ask(mapreduce.MapReduceCompute())(100000 seconds)
 
-  var futureresutltwordcount = wordcount.ask(mapreduce.MapReduceCompute())(100 seconds)
+  implicit val timeout = Timeout(10000 seconds) // L'implicit permet fixar el timeout per a la pregunta que enviem al wordcount. És obligagori.
+  var futureresutltwordcount = wordcount ? mapreduce.MapReduceCompute()
+
   println("Awaiting")
-  val result2:Map[String,Int] = Await.result(futureresutltwordcount,Duration.Inf).asInstanceOf[Map[String,Int]]
+  // En acabar el MapReduce ens envia un missatge amb el resultat
+  val wordCountResult:Map[String,Int] = Await.result(futureresutltwordcount,Duration.Inf).asInstanceOf[Map[String,Int]]
+
 
   println("Results Obtained")
-  println("Result size: "+result2.size)
-  for(v<-result2) println(v)
+  for(v<-wordCountResult) println(v)
 
   // Fem el shutdown del actor system
   println("shutdown")

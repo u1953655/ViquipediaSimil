@@ -13,21 +13,21 @@ case class fromReducer[K2,V3](finals: (K2,V3))
 
 
 // Els actors mappers són polimòrfics ja que  reben la funció de mapping polimòrfica que han d'aplicar
-class Mapper[K1,V1,K2,V2](mapping:((K1,List[V1])) => List[(K2,V2)]) extends Actor {
+class Mapper[K1,V1,K2,V2](mapping:(K1,List[V1]) => List[(K2,V2)]) extends Actor {
   def receive: Receive = {
     // cal anotar clau:K1 i valor:List[V1] per tal d'instanciar adequadament el missatge toMapper amb les variables de tipus de Mapper
     // Compte, que no us enganyi que hagi donat els mateixos noms a les variables de tipus al Mapper que a les case class de fora. S'han
     // de vincular d'alguna manera perquè sinó l'inferidor de tipus no sap a quin dels paràmetres de tipus del mapper correspon el tipus de la clau
     // i el tipus del valor al missatge toMapper
     case toMapper(clau:K1,valor:List[V1])=>
-      sender ! fromMapper(mapping((clau,valor)))
+      sender ! fromMapper(mapping(clau,valor))
     // xivato per seguir l'evolució
     // println("Work Done by Mapper")
   }
 }
 
 // Els actors reducers són polimòrfics ja que reben la funció de reducing polimòrfica que han d'aplicar
-class Reducer[K2,V2,V3](reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
+class Reducer[K2,V2,V3](reducing:(K2,List[V2])=> (K2,V3)) extends Actor {
   def receive: Receive = {
     // cal anotar també la clau i el valor com hem fet amb els mappers
     case toReducer(clau:K2,valor:List[V2])=>
@@ -45,8 +45,8 @@ class Reducer[K2,V2,V3](reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
 // - reducing és la funció dels reducers
  class MapReduce[K1,V1,K2,V2,V3](
                                  input:List[(K1,List[V1])],
-                                 mapping:((K1,List[V1])) => List[(K2,V2)],
-                                 reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
+                                 mapping:(K1,List[V1]) => List[(K2,V2)],
+                                 reducing:(K2,List[V2])=> (K2,V3)) extends Actor {
 
 
   var nmappers = 0 // adaptar per poder tenir menys mappers
@@ -147,8 +147,8 @@ class Reducer[K2,V2,V3](reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
       // En arribar a 0, mostrem el resultat
       if (reducersPendents == 0) {
         client ! resultatFinal
-        println("All Done from Reducers! Showing RESULTS!!!")
-        for ((k,v)<- resultatFinal) println(k+" -> " + v)
+        println("All Done from Reducers!")
+        //for ((k,v)<- resultatFinal) println(k+" -> " + v)
 
       }
   }
