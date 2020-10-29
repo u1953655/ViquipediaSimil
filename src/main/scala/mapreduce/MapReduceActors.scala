@@ -143,9 +143,10 @@ class Reducer[K2,V2,V3](reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
       resultatFinal += entradaDictionari
       reducersPendents -= 1
 
-      client ! resultatFinal
+
       // En arribar a 0, mostrem el resultat
       if (reducersPendents == 0) {
+        client ! resultatFinal
         println("All Done from Reducers! Showing RESULTS!!!")
         for ((k,v)<- resultatFinal) println(k+" -> " + v)
 
