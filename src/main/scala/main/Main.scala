@@ -5,6 +5,10 @@ import java.io.File
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import mapreduce._
+import akka.util.Timeout
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object tractaxml extends App {
 
@@ -62,7 +66,8 @@ object exampleMapreduce extends App {
   println("Llencem l'index invertit")
   // Al crear l'actor MapReduce no cal passar els tipus com a paràmetres ja que amb els propis paràmetres dels constructor SCALA ja pot inferir els tipus.
   //  val indexinvertit = systema.actorOf(Props(new MapReduce[File,String,String,File,Set[File]](fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
-  val indexinvertit = systema.actorOf(Props(new MapReduce(fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
+
+  //val indexinvertit = systema.actorOf(Props(new MapReduce(fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
 
 
 
@@ -85,7 +90,14 @@ object exampleMapreduce extends App {
 
   // afegir el missatge de compute com a start
   // https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/
- //   var resutltwordcount = wordcount ? compute
+
+
+  implicit val timeout = Timeout(10 seconds)
+  var futureresutltwordcount = wordcount ? mapreduce.MapReduceCompute()
+  val result2:Map[String,Int] = Await.result(futureresutltwordcount, 10 second).asInstanceOf[Map[String,Int]]
+
+  for(v<-result2) println(v)
+
   // com tancar el sistema d'actors.
   /*
 

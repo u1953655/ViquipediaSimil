@@ -5,8 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 // Les case class hauran de polimòrfiques en les "claus" i "valors" que s'utilitzen
 // ja que  el MapReduce també serà polimòrfic, sinó, perdríem la genericitat.
 
-//case class compute() //to start computation and get its sender
-
+case class MapReduceCompute() //to start computation and get its sender
 case class toMapper[K1,V1](fitxer: K1, text: List[V1])
 case class fromMapper[K2,V2](intermig: List[(K2,V2)])
 case class toReducer[K2,V2](word:K2, fitxers:List[V2])
@@ -44,10 +43,11 @@ class Reducer[K2,V2,V3](reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
 // - input és el paràmetre d'entrada (compte perquè depedent de la mida pot ser un problema)
 // - mapping és la funció dels mappers
 // - reducing és la funció dels reducers
-class MapReduce[K1,V1,K2,V2,V3](
+ class MapReduce[K1,V1,K2,V2,V3](
                                  input:List[(K1,List[V1])],
                                  mapping:((K1,List[V1])) => List[(K2,V2)],
                                  reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
+
 
   var nmappers = 0 // adaptar per poder tenir menys mappers
   var mappersPendents = 0
@@ -60,38 +60,9 @@ class MapReduce[K1,V1,K2,V2,V3](
   // resultatFinal recollirà les respostes finals dels reducers
   var resultatFinal: Map[K2, V3] = Map()
 
+  // Ens apuntem qui ens ha demanat la feina
+  var client:ActorRef = null
 
-  // farem un mapper per parella (K1,List[V1]) de l'input
-
-  nmappers = input.length
-
-  println("Going to create MAPPERS!!")
-
-  // Al crear actors a dins d'altres actors, enlloc de crear el ActorSystem utilitzarem context i així es va
-  // organitzant la jerarquia d'actors.
-  // D'altra banda, quan els actors que creen tenen un contructor amb paràmetre, no passem el "tipus" de l'actor i prou
-  // a Props sino que creem l'actor amb els paràmetres que necessita. En aquest cas, l'Actor mapping és paramètric en tipus
-  // i necessita com a paràmetre una funció de mapping.
-
-  val mappers: Seq[ActorRef] = for (i <- 0 until nmappers) yield {
-    context.actorOf(Props(new Mapper(mapping)), "mapper" + i)
-  }
-  // No és necessari passar els tipus K1,V1, ... ja que els infereix SCALA pel paràmetre mapping
-  // D'altra banda compte pq  "0 until n" és el mateix que "0 to n-1".
-  // val mappers = for (i <- 0 to nmappers-1) yield {
-  //      context.actorOf(Props(new Mapper[K1,V1,K2,V2](mapping)), "mapper"+i)
-  // }
-
-  // Posar les anotacions de tipus aquí no és necessari però ajuda a llegir que
-  // a cada mapper li enviem una clau de tipus K1 i una llista de valors de tipus V1
-  for(i<- 0 until nmappers) mappers(i) ! toMapper(input(i)._1:K1, input(i)._2: List[V1])
-  // Per tant, alternativament...
-  // for(i<- 0 until nmappers) mappers(i) ! toMapper(input(i)._1, input(i)._2)
-
-  // Necessitem controlar quant s'han acabat tots els mappers per poder llençar els reducers després...
-  mappersPendents = nmappers
-
-  println("All sent to Mappers, now start listening...")
 
 
   def receive: Receive = {
@@ -100,6 +71,47 @@ class MapReduce[K1,V1,K2,V2,V3](
 
     // Tornem a necessitar anotar els tipus del paràmetre que reb fromMapper tal com ho hem fet
     // o be en el codi comentat al generar les tuples.
+
+    case MapReduceCompute() =>
+      println("Hem rebut lencarrec")
+      client=sender()
+      println(sender().toString())
+
+      Thread.sleep(5000)
+      // farem un mapper per parella (K1,List[V1]) de l'input
+
+      nmappers = input.length
+
+      println("Going to create MAPPERS!!")
+
+      // Al crear actors a dins d'altres actors, enlloc de crear el ActorSystem utilitzarem context i així es va
+      // organitzant la jerarquia d'actors.
+      // D'altra banda, quan els actors que creen tenen un contructor amb paràmetre, no passem el "tipus" de l'actor i prou
+      // a Props sino que creem l'actor amb els paràmetres que necessita. En aquest cas, l'Actor mapping és paramètric en tipus
+      // i necessita com a paràmetre una funció de mapping.
+
+      val mappers: Seq[ActorRef] = for (i <- 0 until nmappers) yield {
+        context.actorOf(Props(new Mapper(mapping)), "mapper" + i)
+      }
+      // No és necessari passar els tipus K1,V1, ... ja que els infereix SCALA pel paràmetre mapping
+      // D'altra banda compte pq  "0 until n" és el mateix que "0 to n-1".
+      // val mappers = for (i <- 0 to nmappers-1) yield {
+      //      context.actorOf(Props(new Mapper[K1,V1,K2,V2](mapping)), "mapper"+i)
+      // }
+
+      // Posar les anotacions de tipus aquí no és necessari però ajuda a llegir que
+      // a cada mapper li enviem una clau de tipus K1 i una llista de valors de tipus V1
+      for(i<- 0 until nmappers) mappers(i) ! toMapper(input(i)._1:K1, input(i)._2: List[V1])
+      // Per tant, alternativament...
+      // for(i<- 0 until nmappers) mappers(i) ! toMapper(input(i)._1, input(i)._2)
+
+      // Necessitem controlar quant s'han acabat tots els mappers per poder llençar els reducers després...
+      mappersPendents = nmappers
+
+      println("All sent to Mappers, now start listening...")
+
+
+
     case fromMapper(list_clau_valor:List[(K2,V2)]) =>
       //for ((word:K2, file:V2) <- list_string_file)
       for ((clau, valor) <- list_clau_valor)
@@ -131,6 +143,7 @@ class MapReduce[K1,V1,K2,V2,V3](
       resultatFinal += (entradaDictionari._1 -> entradaDictionari._2 )
       reducersPendents -= 1
 
+      client ! resultatFinal
       // En arribar a 0, mostrem el resultat
       if (reducersPendents == 0) {
         println("All Done from Reducers! Showing RESULTS!!!")
