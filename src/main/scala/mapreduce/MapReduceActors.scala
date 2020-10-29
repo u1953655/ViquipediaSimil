@@ -140,7 +140,7 @@ class Reducer[K2,V2,V3](reducing:((K2,List[V2]))=> (K2,V3)) extends Actor {
     // A mesura que anem rebent respostes del reducer (tuples K2, V3) les anem afegint al Map del resultatfinal i
     // descomptem reducers pendents. Tornem a necessitar anotar el tipus.
     case fromReducer(entradaDictionari:(K2,V3)) =>
-      resultatFinal += (entradaDictionari._1 -> entradaDictionari._2 )
+      resultatFinal += entradaDictionari
       reducersPendents -= 1
 
       client ! resultatFinal
