@@ -11,11 +11,23 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+// Tenim dos objectes executables
+// - tractaxml utilitza un "protoParser" per la viquipèdia i
+// exampleMapreduce usa el MapReduce
+
+
 object tractaxml extends App {
 
   val parseResult= ViquipediaParse.parseViquipediaFile()
-  println(parseResult)
-  parseResult
+
+  parseResult match {
+    case ViquipediaParse.ResultViquipediaParsing(t,c,r) =>
+      println("TITOL: "+ t)
+      println("CONTINGUT: ")
+      println(c)
+      println("REFERENCIES: ")
+      println(r)
+  }
 }
 
 object exampleMapreduce extends App {
@@ -49,29 +61,12 @@ object exampleMapreduce extends App {
     ("maldi", List(("pepa", 10.5, "3/09/20"), ("pepa", 13.5, "4/09/20"), ("joan", 30.3, "8/09/20"), ("marti", 0.5, "8/09/20"), ("pep", 72.1, "9/09/20"), ("mateu", 9.9, "4/09/20"), ("mateu", 40.4, "5/09/20"), ("mateu", 100.5, "6/09/20")))
   )
 
-
-
-  // funcions per si volem fer l'index invers
-  def mappingInvInd(file:File, words:List[String]) :List[(String, File)] =
-        for (word <- words) yield (word, file)
-
-
-  def reducingInvInd(word:String,lfiles:List[File]):(String,Set[File]) =
-        (word, lfiles.toSet)
-
-
+  // Creem el sistema d'actors
   val systema: ActorSystem = ActorSystem("sistema")
-
-  // Al crear l'actor MapReduce no cal passar els tipus com a paràmetres ja que amb els propis paràmetres dels constructor SCALA ja pot inferir els tipus.
-  //  val indexinvertit = systema.actorOf(Props(new MapReduce[File,String,String,File,Set[File]](fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
-
-  //val indexinvertit = systema.actorOf(Props(new MapReduce(fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
-
-
 
   // funcions per poder fer un word count
   def mappingWC(file:File, words:List[String]) :List[(String, Int)] =
-        for (word <- words) yield (word, 1) // Canvi file per 1
+        for (word <- words) yield (word, 1)
 
 
   def reducingWC(word:String, nums:List[Int]):(String,Int) =
@@ -79,7 +74,6 @@ object exampleMapreduce extends App {
 
 
   println("Creem l'actor MapReduce per fer el wordCount")
-  //val wordcount = systema.actorOf(Props(new MapReduce[File,String,String,Int,Int](fitxers,mappingWC,reducingWC )), name = "mastercount")
   val wordcount = systema.actorOf(Props(new MapReduce(fitxers,mappingWC,reducingWC )), name = "mastercount")
 
   // Els Futures necessiten que se'ls passi un temps d'espera, un pel future i un per esperar la resposta.
@@ -106,8 +100,8 @@ object exampleMapreduce extends App {
   systema.terminate()
   println("ended shutdown")
   // com tancar el sistema d'actors.
-  /*
 
+  /*
   EXERCICIS:
 
   Useu el MapReduce per saber quant ha gastat cada persona.
