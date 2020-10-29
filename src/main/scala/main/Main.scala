@@ -19,8 +19,8 @@ object tractaxml extends App {
 
 object exampleMapreduce extends App {
 
-  val nmappers = 4
-  val nreducers = 2
+  val nmappers = 1
+  val nreducers = 1
   val f1 = new java.io.File("f1")
   val f2 = new java.io.File("f2")
   val f3 = new java.io.File("f3")
@@ -62,7 +62,7 @@ object exampleMapreduce extends App {
       case (word, files) => (word, files.toSet)
     }
 
-  val systema = ActorSystem("sistema")
+  val systema: ActorSystem = ActorSystem("sistema")
   println("Llencem l'index invertit")
   // Al crear l'actor MapReduce no cal passar els tipus com a paràmetres ja que amb els propis paràmetres dels constructor SCALA ja pot inferir els tipus.
   //  val indexinvertit = systema.actorOf(Props(new MapReduce[File,String,String,File,Set[File]](fitxers,mappingInvInd,reducingInvInd)), name = "masterinv")
@@ -92,11 +92,18 @@ object exampleMapreduce extends App {
   // https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/
 
 
-  var futureresutltwordcount = wordcount.ask(mapreduce.MapReduceCompute())(10 seconds)
-  val result2:Map[String,Int] = Await.result(futureresutltwordcount, 10 second).asInstanceOf[Map[String,Int]]
+  var futureresutltwordcount = wordcount.ask(mapreduce.MapReduceCompute())(100 seconds)
+  println("Awaiting")
+  val result2:Map[String,Int] = Await.result(futureresutltwordcount,Duration.Inf).asInstanceOf[Map[String,Int]]
 
+  println("Results Obtained")
+  println("Result size: "+result2.size)
   for(v<-result2) println(v)
 
+  // Fem el shutdown del actor system
+  println("shutdown")
+  systema.terminate()
+  println("ended shutdown")
   // com tancar el sistema d'actors.
   /*
 
