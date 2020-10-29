@@ -92,8 +92,7 @@ object exampleMapreduce extends App {
   // https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/
 
 
-  implicit val timeout = Timeout(10 seconds)
-  var futureresutltwordcount = wordcount ? mapreduce.MapReduceCompute()
+  var futureresutltwordcount = wordcount.ask(mapreduce.MapReduceCompute())(10 seconds)
   val result2:Map[String,Int] = Await.result(futureresutltwordcount, 10 second).asInstanceOf[Map[String,Int]]
 
   for(v<-result2) println(v)
