@@ -142,7 +142,9 @@ class MapReduce[K1,V1,K2,V2,V3](
       if (reducersPendents == 0) {
         client ! resultatFinal
         println("All Done from Reducers!")
-
+        // Ara podem alliberar els recursos dels actors, el propi MapReduce, tots els mappers i els reducers.
+        // Fixem-nos que no te sentit que tornem a engegar "aquest mateix" MapReduce.
+        context.stop(self)
       }
   }
 
