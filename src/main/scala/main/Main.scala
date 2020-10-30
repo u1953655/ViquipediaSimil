@@ -2,7 +2,7 @@ package main
 
 import java.io.File
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSystem, PoisonPill, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import mapreduce._
@@ -91,6 +91,8 @@ object exampleMapreduce extends App {
   // En acabar el MapReduce ens envia un missatge amb el resultat
   val wordCountResult:Map[String,Int] = Await.result(futureresutltwordcount,Duration.Inf).asInstanceOf[Map[String,Int]]
 
+  // ja el podem matar
+  wordcount!PoisonPill
 
   println("Results Obtained")
   for(v<-wordCountResult) println(v)
