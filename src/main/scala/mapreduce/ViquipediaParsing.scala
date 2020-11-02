@@ -6,7 +6,7 @@ import scala.xml.{Elem, XML}
 object ViquipediaParse {
 
   // Fixem el fitxer xml que volem tractar a l'exemple
-  val exampleFilename="32509.xml"
+  val exampleFilename="viqui_files/32509.xml"
 
   // Definim una case class per a retornar diversos valor, el titol de la pàgina, el contingut i les referències trobades.
   // El contingut, s'ha de polir més? treure refs? stopwords?...
