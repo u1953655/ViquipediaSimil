@@ -7,3 +7,4 @@ Fixeu-vos que a la carpeta principal també hi teniu el fitxer **stopwordscat.tx
 També podeu trobar l'enunciat detallat al document **practicaActors.pdf**.
 
 Per fer-ho correctament us recomano que **feu un fork** des del vostre usuari.
+
